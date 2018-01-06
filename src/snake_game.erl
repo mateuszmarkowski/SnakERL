@@ -10,7 +10,7 @@
 -export([start/3, server/1, join/2, leave/2, direction/3]).
 
 -ifdef(EUNIT).
--export([move_segments/3]).
+-export([move_segments/3, move_snake/1]).
 -endif.
 
 start(DbPid, X, Y) ->
@@ -56,10 +56,26 @@ server(DbPid) ->
 				Game#game.snakes)},
 			snake_db:update_game(DbPid, Game2),
 			server(DbPid);
+		tick ->
+			lager:info("Game ~p has been ticked.", [self()]),
+			Game = snake_db:get_game(DbPid, self()),
+			Game2 = move_snakes(Game),
+			snake_db:update_game(DbPid, Game2),
+			broadcast_updates(Game2),
+			server(DbPid);
 		_ ->
 			ok, server(DbPid)
-		%%tick -> lager:info("Game ~p has been ticked.", [self()]), server(DbPid)
 	end.
+
+broadcast_updates(Game = #game{snakes = Snakes}) ->
+	broadcast_updates(Game, [ClientPid || Snake = #snake{pid = ClientPid} <- Snakes]).
+
+broadcast_updates(_Game, []) ->
+	ok;
+
+broadcast_updates(Game, [ClientPid|ClientPids]) ->
+	ClientPid ! {update, Game},
+	broadcast_updates(Game, ClientPids).
 
 move_snakes(Game) ->
 	move_snakes(Game, Game#game.snakes, []). 
@@ -71,12 +87,14 @@ move_snakes(Game, [Snake|Snakes], MovedSnakes) ->
 	move_snakes(Game, Snakes, [move_snake(Snake)|MovedSnakes]).
 
 move_snake(Snake = #snake{direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}) ->
-	case Direction of
+	Segments2 = case Direction of
 		?DIRECTION_UP    -> move_segments(X, Y - 1, [Segment] ++ Segments);
 		?DIRECTION_RIGHT -> move_segments(X + 1, Y, [Segment] ++ Segments);
 		?DIRECTION_DOWN  -> move_segments(X, Y + 1, [Segment] ++ Segments);
 		?DIRECTION_LEFT  -> move_segments(X - 1, Y, [Segment] ++ Segments)
-	end.
+	end,
+	
+	Snake#snake{segments = Segments2}.
 
 check_collision(_Game, X, Y) when X < 0; Y < 0 -> border;
 

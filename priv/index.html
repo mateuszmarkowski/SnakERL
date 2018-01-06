@@ -24,7 +24,7 @@ function open()
     {
         var received_msg = evt.data;
         console.log("Received: " + received_msg);
-        var txt = document.createTextNode("Simon says: " + received_msg);
+        var txt = document.createTextNode("Server says: " + received_msg);
         document.getElementById('msgs').appendChild(txt);
     };
     ws.onclose = function()

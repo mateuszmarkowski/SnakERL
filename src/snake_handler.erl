@@ -16,6 +16,7 @@ handle(_Req, State) ->
 	{ok, Req2, State}.
 	
 websocket_init(_TransportName, Req, _Opts) ->
+	lager:info("Socket pid ~p", [self()]),
 	lager:info("websocket init"),
 	{ok, Req, [{db_pid, snake_db:start()}]}.
 
@@ -45,6 +46,11 @@ websocket_handle(_Any, Req, State) ->
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
 	{reply, {text, Msg}, Req, State};
+
+
+websocket_info(Update, Req, State) ->
+	lager:info("gotten ~p", [Update]),
+	{reply, {text, snake_serializer:term_to_text(Update)}, Req, State};
 
 websocket_info(_Info, Req, State) ->
 	lager:info("info?"),
