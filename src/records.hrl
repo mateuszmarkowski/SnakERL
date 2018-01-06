@@ -12,6 +12,6 @@
 }).
 
 -record(segment, {
-	position_x,
-	position_y
+	x,
+	y
 }).

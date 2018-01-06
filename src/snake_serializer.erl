@@ -47,5 +47,5 @@ snakes_to_text([], Parts) ->
 snakes_to_text([#snake{pid = Pid, segments = Segments}|Snakes], Parts) ->
 	snakes_to_text(
 		Snakes,
-		[pid_to_list(Pid) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{position_x = X, position_y = Y} <- Segments], ";")|Parts]
+		[pid_to_list(Pid) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
 	).
