@@ -10,7 +10,7 @@
 -export([start/3, server/1, join/2, leave/2, direction/3]).
 
 -ifdef(EUNIT).
--export([move_segments/3, move_snake/1]).
+-export([move_segments/4, move_snake/1]).
 -endif.
 
 start(DbPid, X, Y) ->
@@ -49,7 +49,7 @@ server(DbPid) ->
 				fun (Snake = #snake{pid = CurrentClientPid}) ->
 					lager:info("???"),
 					case CurrentClientPid of
-						ClientPid -> Snake#snake{direction = Direction};
+						ClientPid -> Snake#snake{direction = Direction, growth = 1};
 						_ -> Snake
 					end
 				end,
@@ -86,15 +86,22 @@ move_snakes(Game, [], MovedSnakes) ->
 move_snakes(Game, [Snake|Snakes], MovedSnakes) ->
 	move_snakes(Game, Snakes, [move_snake(Snake)|MovedSnakes]).
 
-move_snake(Snake = #snake{direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}) ->
-	Segments2 = case Direction of
-		?DIRECTION_UP    -> move_segments(X, Y - 1, [Segment] ++ Segments);
-		?DIRECTION_RIGHT -> move_segments(X + 1, Y, [Segment] ++ Segments);
-		?DIRECTION_DOWN  -> move_segments(X, Y + 1, [Segment] ++ Segments);
-		?DIRECTION_LEFT  -> move_segments(X - 1, Y, [Segment] ++ Segments)
+move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}) ->
+	ShouldGrow = Growth > 0,
+	
+	Growth2 = case Growth of
+		G when G > 1 -> G - 1;
+		_ -> 0
 	end,
 	
-	Snake#snake{segments = Segments2}.
+	Segments2 = case Direction of
+		?DIRECTION_UP    -> move_segments(X, Y - 1, [Segment] ++ Segments, ShouldGrow);
+		?DIRECTION_RIGHT -> move_segments(X + 1, Y, [Segment] ++ Segments, ShouldGrow);
+		?DIRECTION_DOWN  -> move_segments(X, Y + 1, [Segment] ++ Segments, ShouldGrow);
+		?DIRECTION_LEFT  -> move_segments(X - 1, Y, [Segment] ++ Segments, ShouldGrow)
+	end,
+	
+	Snake#snake{segments = Segments2, growth = Growth2}.
 
 check_collision(_Game, X, Y) when X < 0; Y < 0 -> border;
 
@@ -114,12 +121,15 @@ check_collision_with_segments([#segment{x = SX, y = SY}|Segments], X, Y) when SX
 check_collision_with_segments([_Segment|Segments], X, Y) ->
 	check_collision_with_segments(Segments, X, Y).
 	
-move_segments(NewX, NewY, Segments) ->
-	move_segments(NewX, NewY, Segments, []).
+move_segments(NewX, NewY, Segments, ShouldGrow) ->
+	move_segments(NewX, NewY, Segments, [], ShouldGrow).
 	
-move_segments(NewX, NewY, [], MovedSegments) ->
+move_segments(NewX, NewY, [], MovedSegments, _ShouldGrow) ->
 	lists:reverse(MovedSegments);
 
+move_segments(NewX, NewY, Segments, _MovedSegments, true) ->	
+	[#segment{x = NewX, y = NewY}|Segments];
+
 %% X,Y of the preceding segment becomes X,Y for the current segment
-move_segments(NewX, NewY, [Segment = #segment{x = NextX, y = NextY}|Segments], MovedSegments) ->
-	move_segments(NextX, NextY, Segments, [#segment{x = NewX, y = NewY}|MovedSegments]).
+move_segments(NewX, NewY, [Segment = #segment{x = NextX, y = NextY}|Segments], MovedSegments, false) ->
+	move_segments(NextX, NextY, Segments, [#segment{x = NewX, y = NewY}|MovedSegments], false).

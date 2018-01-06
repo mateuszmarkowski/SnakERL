@@ -8,6 +8,7 @@
 -record(snake, {
 	pid,
 	direction,
+	growth=0,
 	segments = []
 }).
 

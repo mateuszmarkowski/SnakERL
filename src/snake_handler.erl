@@ -46,15 +46,10 @@ websocket_handle(_Any, Req, State) ->
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
 	{reply, {text, Msg}, Req, State};
-
-
+	
 websocket_info(Update, Req, State) ->
 	lager:info("gotten ~p", [Update]),
-	{reply, {text, snake_serializer:term_to_text(Update)}, Req, State};
-
-websocket_info(_Info, Req, State) ->
-	lager:info("info?"),
-	{reply, Req, State, hibernate}.
+	{reply, {text, snake_serializer:term_to_text(Update)}, Req, State}.
 
 websocket_terminate(_Reason, _Req, State) ->
 	lager:info("I HAVE BEEN TERMINATED ~p", [self()]),

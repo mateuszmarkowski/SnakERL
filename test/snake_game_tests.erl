@@ -12,6 +12,7 @@ move_segments_test_() ->
 				0,
 				1,
 				[#segment{x=0, y=0}, #segment{x=1, y=0}, #segment{x=2, y=0}],
+				false,
 				[#segment{x=0, y=1}, #segment{x=0, y=0}, #segment{x=1, y=0}]
 			)
 		}
@@ -28,8 +29,8 @@ move_snake_test_() ->
 		}
 	].
 
-test_move_segments(NewX, NewY, Segments, ExpectedSegments) ->
-	?_assertEqual(ExpectedSegments, snake_game:move_segments(NewX, NewY, Segments)).
+test_move_segments(NewX, NewY, Segments, ShouldGrow, ExpectedSegments) ->
+	?_assertEqual(ExpectedSegments, snake_game:move_segments(NewX, NewY, Segments, ShouldGrow)).
 
 test_move_snake(Snake, ExpectedSnake) ->
 	?_assertEqual(ExpectedSnake, snake_game:move_snake(Snake)).
