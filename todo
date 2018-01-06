@@ -1,0 +1,9 @@
+1) List available games
+2) Give an option to start a new game
+
+
+Starting a game:
+1) Spawn a game process
+2) Get pid of the process
+3) Connection pid identifies snake
+4) 

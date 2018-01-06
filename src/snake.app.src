@@ -1,0 +1,14 @@
+{application, snake,
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { snake_app, []}},
+  {applications,
+   [kernel,stdlib,crypto,ranch,cowlib,cowboy,compiler,lager,syntax_tools]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
