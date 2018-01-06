@@ -3,43 +3,121 @@
 <head>
 <script type="text/javascript">
 var ws = new Object;
-function send()
+function start()
 {
-    ws.send("hello world!");
-    console.log('Message sent');
+	ws.send("S#100,100");
+}
+function direction(dir)
+{
+	ws.send("D#"+dir);
 }
 function open()
 {
-    if (!("WebSocket" in window)) {
-        alert("This browser does not support WebSockets");
-        return;
-    }
-    /* @todo: Change to your own server IP address */
-    ws = new WebSocket("ws://localhost:8080/websocket");
+	var canvas = document.getElementById('board');
+	
+	if (!("WebSocket" in window)) {
+		alert("This browser does not support WebSockets");
+		return;
+	}
+	/* @todo: Change to your own server IP address */
+	ws = new WebSocket("ws://localhost:8080/websocket");
 
-    ws.onopen = function() {
-        console.log('Connected');
-    };
-    ws.onmessage = function (evt)
-    {
-        var received_msg = evt.data;
-        console.log("Received: " + received_msg);
-        var txt = document.createTextNode("Server says: " + received_msg);
-        document.getElementById('msgs').appendChild(txt);
-    };
-    ws.onclose = function()
-    {
-        console.log('Connection closed');
-    };
+	ws.onopen = function() {
+		console.log('Connected');
+	};
+	
+	ws.onmessage = function (evt)
+	{
+		var received_msg = evt.data;
+		console.log("Received: " + received_msg);
+		
+		if (typeof deserialize(received_msg) == 'object') {
+			console.log(deserialize(received_msg));
+			
+			render(canvas, deserialize(received_msg));
+		}
+	};
+	
+	ws.onclose = function()
+	{
+		console.log('Connection closed');
+	};
 }
+
+//D#<0.341.0>=-55,39|<0.336.0>=31,112
+function deserialize(text) {
+	switch (text.slice(0, 2)) {
+		case 'D#':
+			var snakeTexts = text.slice(2).split('|'),
+				snakes = [];
+				
+			for (var snakeText of snakeTexts) {
+				var segmentTexts = snakeText.split('=')[1].split(';'),
+					segments = [];
+				
+				segments = segmentTexts.map(function (segmentText) {
+					var XY = segmentText.split(',');
+					
+					return [parseFloat(XY[0]), parseFloat(XY[1])];
+				});
+				
+				snakes.push(segments);
+			}
+			
+			return snakes;
+		break;
+		default:
+		
+		break;
+		
+	}
+}
+
+function coordsToSegment(x, y) {
+	const multiplier = 10;
+	
+	return [
+		x * multiplier,
+		y * multiplier,
+		multiplier,
+		multiplier
+	];
+}
+
+function render(canvas, snakes) {
+	var context = canvas.getContext('2d');
+	
+	context.fillStyle = 'red';
+	context.fillRect(0, 0, 800, 400);
+	
+	context.fillStyle = 'yellow';
+	
+	for (var snake of snakes) {
+		for (var segment of snake) {
+			console.log(coordsToSegment(segment[0], segment[1]));
+			
+			context.fillRect.apply(context, coordsToSegment(segment[0], segment[1]));
+		}
+	}
+}
+
+//render(document.getElementById('board'), []);
+
 </script>
 </head>
 <body>
 <div id="sse">
    <a href="javascript:open()">Open websocket connection</a><br/>
-   <a href="javascript:send()">Send Message</a>
+   <a href="javascript:start()">Start game</a><br/>
+   <a href="javascript:direction(1)">Up</a><br/>
+   <a href="javascript:direction(3)">Down</a><br/>
+   <a href="javascript:direction(2)">Right</a><br/>
+   <a href="javascript:direction(4)">Left</a><br/>
 </div>
 <div id="msgs">
 </div>
+
+<canvas width="800" height="400" id="board">
+</canvas>
 </body>
 </html>
