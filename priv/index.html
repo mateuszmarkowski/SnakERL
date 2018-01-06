@@ -11,6 +11,10 @@ function direction(dir)
 {
 	ws.send("D#"+dir);
 }
+function list()
+{
+	ws.send("L#");
+}
 function open()
 {
 	var canvas = document.getElementById('board');
@@ -66,6 +70,11 @@ function deserialize(text) {
 			
 			return snakes;
 		break;
+		
+		case 'L#':
+			
+		break;
+		
 		default:
 		
 		break;
@@ -109,6 +118,7 @@ function render(canvas, snakes) {
 <div id="sse">
    <a href="javascript:open()">Open websocket connection</a><br/>
    <a href="javascript:start()">Start game</a><br/>
+   <a href="javascript:list()">List games</a><br/>
    <a href="javascript:direction(1)">Up</a><br/>
    <a href="javascript:direction(3)">Down</a><br/>
    <a href="javascript:direction(2)">Right</a><br/>

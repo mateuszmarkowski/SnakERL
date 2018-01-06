@@ -2,3 +2,5 @@
 2) Give an option to start a new game
 3) Snake shouldn't move backwards
 4) Terminate game if no players
+5) Snakes are too short, let's add more segments
+6) Assign a unique color to each snake
