@@ -49,6 +49,7 @@ server(DbPid) ->
 				fun (Snake = #snake{pid = CurrentClientPid}) ->
 					lager:info("???"),
 					case CurrentClientPid of
+						%% Snakes grow when changing direction, just for testing.
 						ClientPid -> Snake#snake{direction = Direction, growth = 1};
 						_ -> Snake
 					end
@@ -89,6 +90,7 @@ move_snakes(Game, [Snake|Snakes], MovedSnakes) ->
 move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}) ->
 	ShouldGrow = Growth > 0,
 	
+	%% Snakes grow one segment per tick as long as there're pending segments (Growth - number of pending segments)
 	Growth2 = case Growth of
 		G when G > 1 -> G - 1;
 		_ -> 0
