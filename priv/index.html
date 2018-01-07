@@ -3,6 +3,132 @@
 <head>
 <script type="text/javascript">
 var ws = new Object;
+
+class Snake {
+	constructor(id, segments, color) {
+		this.id = id;
+		this.segments = segments;
+		this.color = color;
+	}
+}
+
+class Game {
+	constructor(context) {
+		this.snakes = {};
+		this.context = context;
+		this.sizeMultiplier = 10;
+	}
+	
+	getRandomColor () {
+		var colors = [
+			'red',
+			'blue',
+			'pink',
+			'purple',
+			'green',
+			'black'
+		];
+		
+		return colors[Math.floor((Math.random(colors.length) * colors.length))];
+	}
+	
+	addOrUpdateSnake(snake) {
+		if (snake.id in this.snakes) {
+			this.snakes[snake.id].segments = snake.segments;
+		} else {
+			this.snakes[snake.id] = snake;
+			this.snakes[snake.id].color = this.getRandomColor();
+		}
+	}
+	
+	handleMessage(text) {
+		var message = MessageDeserializer.deserialize(text);
+		
+		if (typeof message != 'object') {
+			return;
+		}
+		
+		switch (message.constructor.name) {
+			case 'UpdateMessage':
+				for (var snake of message.snakes) {
+					this.addOrUpdateSnake(snake);
+				}
+				
+				this.render();
+			break;
+		}
+	}
+	
+	coordsToSegment(x, y) {		
+		return [
+			x * this.sizeMultiplier,
+			y * this.sizeMultiplier,
+			this.sizeMultiplier,
+			this.sizeMultiplier
+		];
+	}
+	
+	render() {
+		this.context.fillStyle = 'red';
+		this.context.fillRect(0, 0, 800, 400);
+		
+		for (var snakeId in this.snakes) {
+			var snake = this.snakes[snakeId];
+			
+			this.context.fillStyle = snake.color;
+			
+			for (var segment of snake.segments) {				
+				this.context.fillRect.apply(this.context, this.coordsToSegment(segment[0], segment[1]));
+			}
+		}
+	}
+}
+
+class UpdateMessage {
+	constructor(snakes) {
+		this.snakes = snakes;
+	}
+}
+
+class MessageDeserializer {
+	static deserialize(text) {
+		switch (text.slice(0, 2)) {
+			case 'D#':
+				var snakeTexts = text.slice(2).split('|'),
+					snakes = [];
+					
+				for (var snakeText of snakeTexts) {
+					var snakeId = snakeText.split('=')[0],
+						segmentTexts = snakeText.split('=')[1].split(';'),
+						segments = [],
+						snake;
+					
+					segments = segmentTexts.map(function (segmentText) {
+						var XY = segmentText.split(',');
+						
+						return [parseFloat(XY[0]), parseFloat(XY[1])];
+					});
+					
+					snake = new Snake(snakeId, segments);
+					
+					snakes.push(snake);
+				}
+				
+				return new UpdateMessage(snakes);
+			break;
+			
+			case 'L#':
+				
+			break;
+			
+			default:
+			
+			break;
+			
+		}
+	}
+}
+
 function start()
 {
 	ws.send("S#100,100");
@@ -30,16 +156,14 @@ function open()
 		console.log('Connected');
 	};
 	
+	var game = new Game(canvas.getContext('2d'));
+	
 	ws.onmessage = function (evt)
 	{
 		var received_msg = evt.data;
 		console.log("Received: " + received_msg);
 		
-		if (typeof deserialize(received_msg) == 'object') {
-			console.log(deserialize(received_msg));
-			
-			render(canvas, deserialize(received_msg));
-		}
+		game.handleMessage(received_msg);
 	};
 	
 	ws.onclose = function()
@@ -47,70 +171,6 @@ function open()
 		console.log('Connection closed');
 	};
 }
-
-//D#<0.341.0>=-55,39|<0.336.0>=31,112
-function deserialize(text) {
-	switch (text.slice(0, 2)) {
-		case 'D#':
-			var snakeTexts = text.slice(2).split('|'),
-				snakes = [];
-				
-			for (var snakeText of snakeTexts) {
-				var segmentTexts = snakeText.split('=')[1].split(';'),
-					segments = [];
-				
-				segments = segmentTexts.map(function (segmentText) {
-					var XY = segmentText.split(',');
-					
-					return [parseFloat(XY[0]), parseFloat(XY[1])];
-				});
-				
-				snakes.push(segments);
-			}
-			
-			return snakes;
-		break;
-		
-		case 'L#':
-			
-		break;
-		
-		default:
-		
-		break;
-		
-	}
-}
-
-function coordsToSegment(x, y) {
-	const multiplier = 10;
-	
-	return [
-		x * multiplier,
-		y * multiplier,
-		multiplier,
-		multiplier
-	];
-}
-
-function render(canvas, snakes) {
-	var context = canvas.getContext('2d');
-	
-	context.fillStyle = 'red';
-	context.fillRect(0, 0, 800, 400);
-	
-	context.fillStyle = 'yellow';
-	
-	for (var snake of snakes) {
-		for (var segment of snake) {
-			console.log(coordsToSegment(segment[0], segment[1]));
-			
-			context.fillRect.apply(context, coordsToSegment(segment[0], segment[1]));
-		}
-	}
-}
-
-//render(document.getElementById('board'), []);
 
 </script>
 </head>
