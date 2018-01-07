@@ -41,8 +41,14 @@ server(DbPid) ->
 		{leave, ClientPid} ->
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = Game#game{snakes = [Snake || Snake = #snake{pid = Pid} <- Game#game.snakes, Pid =/= ClientPid]},
-			snake_db:update_game(DbPid, Game2),
-			server(DbPid);
+			
+			case length(Game2#game.snakes) of
+				0 -> lager:info("Game ~p stopped because there are no more snakes.", [self()]), snake_db:delete_game(DbPid, Game2);
+				_ -> 
+					snake_db:update_game(DbPid, Game2),
+					server(DbPid)
+			end;
+
 		{direction, ClientPid, Direction} ->
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = Game#game{snakes = lists:map(

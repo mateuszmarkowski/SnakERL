@@ -2,7 +2,7 @@
 
 -define(GAME_TABLE, snake_game_table).
 
--export([start/0, update_game/2, new_game/2, list_games/1, get_game/2, server/0]).
+-export([start/0, update_game/2, new_game/2, list_games/1, get_game/2, delete_game/2, server/0]).
 
 -include("records.hrl").
 
@@ -25,10 +25,11 @@ server() ->
 		{list_games, Pid} ->
 			Pid ! {list_games_response, ets:tab2list(?GAME_TABLE)}, server();
 		{get_game, GamePid, Pid} ->
-			Pid ! {get_game_response, lists:nth(1, ets:lookup(?GAME_TABLE, GamePid))}, server()
-		
+			Pid ! {get_game_response, lists:nth(1, ets:lookup(?GAME_TABLE, GamePid))}, server();
+		{delete_game, Game} ->
+			ets:delete(?GAME_TABLE, Game#game.pid)
 	end.
-	
+
 update_game(ServerPid, Game) ->
 	ServerPid ! {update_game, Game}.
 	
@@ -49,3 +50,6 @@ get_game(ServerPid, GamePid) ->
 		{get_game_response, Game} -> Game;
 		_ -> ok
 	end.
+
+delete_game(ServerPid, Game) ->
+	ServerPid ! {delete_game, Game}.

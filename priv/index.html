@@ -50,8 +50,18 @@ class Game {
 		
 		switch (message.constructor.name) {
 			case 'UpdateMessage':
+				var snakeIds = [];
+			
 				for (var snake of message.snakes) {
 					this.addOrUpdateSnake(snake);
+					
+					snakeIds.push(snake.id);
+				}
+				
+				for (var snakeId in this.snakes) {
+					if (snakeIds.indexOf(snakeId) < 0) {
+						delete this.snakes[snakeId];
+					}
 				}
 				
 				this.render();
