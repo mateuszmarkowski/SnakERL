@@ -4,3 +4,4 @@
 4) Terminate game if no players
 5) Snakes are too short, let's add more segments
 6) Assign a unique color to each snake
+7) Game states: waiting for players, playing

@@ -49,8 +49,8 @@ server(DbPid) ->
 				fun (Snake = #snake{pid = CurrentClientPid}) ->
 					lager:info("???"),
 					case CurrentClientPid of
-						%% Snakes grow when changing direction, just for testing.
-						ClientPid -> Snake#snake{direction = Direction, growth = 1};
+						
+						ClientPid -> maybe_change_direction(Snake, Direction);
 						_ -> Snake
 					end
 				end,
@@ -67,6 +67,25 @@ server(DbPid) ->
 		_ ->
 			ok, server(DbPid)
 	end.
+
+%% Snakes can't move backwards!
+maybe_change_direction(Snake = #snake{segments = Segments}, Direction) when length(Segments) > 1 ->
+	%% The first segment is the head of our snake.
+	Segment1 = lists:nth(1, Segments),
+	Segment2 = lists:nth(2, Segments),
+	
+	{NewX, NewY} = calculate_new_x_y(Segment1#segment.x, Segment1#segment.y, Direction),
+	
+	Collides = (Segment2#segment.x =:= NewX) and (Segment2#segment.y =:= NewY),
+	
+	case Collides of
+		true -> Snake;
+		%% Snakes grow when changing direction, just for testing.
+		_ -> Snake#snake{direction = Direction, growth = 1}
+	end;
+	
+maybe_change_direction(Snake, Direction) ->
+	Snake#snake{direction = Direction, growth = 1}.
 
 broadcast_updates(Game = #game{snakes = Snakes}) ->
 	broadcast_updates(Game, [ClientPid || Snake = #snake{pid = ClientPid} <- Snakes]).
@@ -96,14 +115,19 @@ move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Se
 		_ -> 0
 	end,
 	
-	Segments2 = case Direction of
-		?DIRECTION_UP    -> move_segments(X, Y - 1, [Segment] ++ Segments, ShouldGrow);
-		?DIRECTION_RIGHT -> move_segments(X + 1, Y, [Segment] ++ Segments, ShouldGrow);
-		?DIRECTION_DOWN  -> move_segments(X, Y + 1, [Segment] ++ Segments, ShouldGrow);
-		?DIRECTION_LEFT  -> move_segments(X - 1, Y, [Segment] ++ Segments, ShouldGrow)
-	end,
+	{NewX, NewY} = calculate_new_x_y(X, Y, Direction),
+	
+	Segments2 = move_segments(NewX, NewY, [Segment] ++ Segments, ShouldGrow),
 	
 	Snake#snake{segments = Segments2, growth = Growth2}.
+
+calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_UP    -> {X, Y - 1};
+
+calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_RIGHT -> {X + 1, Y};
+
+calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_DOWN  -> {X, Y + 1};
+
+calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_LEFT  -> {X - 1, Y}.
 
 check_collision(_Game, X, Y) when X < 0; Y < 0 -> border;
 
