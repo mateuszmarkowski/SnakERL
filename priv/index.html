@@ -21,7 +21,6 @@ class Game {
 	
 	getRandomColor () {
 		var colors = [
-			'red',
 			'blue',
 			'pink',
 			'purple',
@@ -58,6 +57,7 @@ class Game {
 					snakeIds.push(snake.id);
 				}
 				
+				//remove snakes which haven't been returned
 				for (var snakeId in this.snakes) {
 					if (snakeIds.indexOf(snakeId) < 0) {
 						delete this.snakes[snakeId];

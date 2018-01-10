@@ -28,9 +28,59 @@ move_snake_test_() ->
 			)
 		}
 	].
+	
+detect_collisions_test_() ->
+	[
+		{
+			"No collision.",
+			test_detect_collisions(
+				#game{
+					snakes = [
+						#snake{pid=list_to_pid("<0.1.0>"), segments = [#segment{x=10, y=11}, #segment{x=10, y=12}, #segment{x=10, y=13}]},
+						#snake{pid=list_to_pid("<0.2.0>"), segments = [#segment{x=2, y=11}, #segment{x=2, y=12}, #segment{x=2, y=13}]}
+					]
+				},
+				[]
+			)
+		},
+		{
+			"A simple collision.",
+			test_detect_collisions(
+				#game{
+					snakes = [
+						#snake{pid=list_to_pid("<0.1.0>"), segments = [#segment{x=2, y=1}, #segment{x=2, y=2}, #segment{x=2, y=3}]},
+						#snake{pid=list_to_pid("<0.2.0>"), segments = [#segment{x=2, y=2}, #segment{x=3, y=2}, #segment{x=4, y=2}]}
+					]
+				},
+				[
+					#snake{pid=list_to_pid("<0.2.0>"), segments = [#segment{x=2, y=2}, #segment{x=3, y=2}, #segment{x=4, y=2}]}
+				]
+			)
+		},
+		{
+			"A double collision.",
+			test_detect_collisions(
+				#game{
+					snakes = [
+						#snake{pid=list_to_pid("<0.1.0>"), segments = [#segment{x=2, y=1}, #segment{x=2, y=2}, #segment{x=2, y=3}]},
+						#snake{pid=list_to_pid("<0.2.0>"), segments = [#segment{x=2, y=1}, #segment{x=3, y=2}, #segment{x=4, y=3}]}
+					]
+				},
+				[
+					#snake{pid=list_to_pid("<0.2.0>"), segments = [#segment{x=2, y=1}, #segment{x=3, y=2}, #segment{x=4, y=3}]},
+					#snake{pid=list_to_pid("<0.1.0>"), segments = [#segment{x=2, y=1}, #segment{x=2, y=2}, #segment{x=2, y=3}]}
+				]
+			)
+		}
+	].
 
 test_move_segments(NewX, NewY, Segments, ShouldGrow, ExpectedSegments) ->
 	?_assertEqual(ExpectedSegments, snake_game:move_segments(NewX, NewY, Segments, ShouldGrow)).
 
 test_move_snake(Snake, ExpectedSnake) ->
 	?_assertEqual(ExpectedSnake, snake_game:move_snake(Snake)).
+
+test_detect_collisions(Game, ExpectedSnakes) ->
+	?_assertEqual(ExpectedSnakes, snake_game:detect_collisions(Game)).
+	
+	

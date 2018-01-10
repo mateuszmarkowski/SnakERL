@@ -10,7 +10,7 @@
 -export([start/3, server/1, join/2, leave/2, direction/3]).
 
 -ifdef(EUNIT).
--export([move_segments/4, move_snake/1]).
+-export([move_segments/4, move_snake/1, detect_collisions/1]).
 -endif.
 
 start(DbPid, X, Y) ->
@@ -135,23 +135,40 @@ calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_DOWN  -> {X, Y 
 
 calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_LEFT  -> {X - 1, Y}.
 
-check_collision(_Game, X, Y) when X < 0; Y < 0 -> border;
-
-check_collision(Game = #game{size_x = SizeX, size_y = SizeY}, X, Y) when X >= SizeX; Y >= SizeY -> border;
+detect_collisions(Game = #game{snakes = Snakes}) ->
+	detect_collisions(Snakes, Snakes, []).
 	
-check_collision(Game = #game{snakes = Snakes}, X, Y) ->
-	%% Extract segments from all snakes.
-	case check_collision_with_segments(lists:foldl(fun(S = #snake{segments = Segments}, AllSegments) -> Segments ++ AllSegments end, [], Snakes), X, Y) of
-		true -> segment;
-		false -> ok
+detect_collisions([], _AllSnakes, CollidingSnakes) ->
+	CollidingSnakes;
+
+detect_collisions([Snake = #snake{pid = Pid, segments = [Segment|Segments]}|RemainingSnakes], AllSnakes, CollidingSnakes) ->
+	case does_collide(Segment, get_all_segments(AllSnakes, Pid)) of	
+		true -> detect_collisions(RemainingSnakes, AllSnakes, [Snake|CollidingSnakes]);
+		false -> detect_collisions(RemainingSnakes, AllSnakes, CollidingSnakes)
 	end.
 
-check_collision_with_segments([], X, Y) -> false;
+does_collide(_HeadSegment, []) -> false;
 
-check_collision_with_segments([#segment{x = SX, y = SY}|Segments], X, Y) when SX == X; SY == Y -> true;
+does_collide(HeadSegment = #segment{x = HX, y = HY}, [Segment = #segment{x = X, y = Y}|Segments]) when HX == X, HY == Y -> true;
 
-check_collision_with_segments([_Segment|Segments], X, Y) ->
-	check_collision_with_segments(Segments, X, Y).
+does_collide(HeadSegment, [_Segment|Segments]) ->
+	does_collide(HeadSegment, Segments).
+
+%% Get a list of all occupied pixels except for the pixel occupied by the head of the snake identified by SkipHeadPid.
+get_all_segments(AllSnakes, SkipHeadPid) when is_pid(SkipHeadPid) ->
+	get_all_segments(AllSnakes, [], SkipHeadPid).
+
+get_all_segments([], Segments, _SkipHeadPid) ->
+	Segments;
+
+get_all_segments([Snake = #snake{pid = Pid, segments = [HeadSegment|CurrentSegments]}|Snakes], Segments, SkipHeadPid) when Pid == SkipHeadPid ->
+	get_all_segments(Snakes, CurrentSegments ++ Segments, SkipHeadPid);
+
+get_all_segments([Snake = #snake{pid = Pid, segments = CurrentSegments}|Snakes], Segments, SkipHeadPid) ->
+	get_all_segments(Snakes, CurrentSegments ++ Segments, SkipHeadPid).
+
+%% Collision for a snake is when its head shares X,Y with some other segment
+%% Heads of two snakes colliding will result in two collisions
 	
 move_segments(NewX, NewY, Segments, ShouldGrow) ->
 	move_segments(NewX, NewY, Segments, [], ShouldGrow).

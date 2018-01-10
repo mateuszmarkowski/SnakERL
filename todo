@@ -5,3 +5,6 @@
 +++5) Snakes are too short, let's add more segments
 +++6) Assign a unique color to each snake
 7) Game states: waiting for players, playing
+8) User has to leave before starting or joining a new game.
+9) Collision detection
+10) Moving through walls
