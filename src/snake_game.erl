@@ -16,7 +16,7 @@
 start(DbPid, X, Y) ->
 	GamePid = spawn(?MODULE, server, [DbPid]),
 	snake_db:new_game(DbPid, #game{pid = GamePid, size_x = X, size_y = Y}),
-	timer:send_interval(1000, GamePid, tick),
+	timer:send_interval(500, GamePid, tick),
 	GamePid.
 
 join(GamePid, ClientPid) ->
@@ -56,7 +56,7 @@ server(DbPid) ->
 					lager:info("???"),
 					case CurrentClientPid of
 						
-						ClientPid -> maybe_change_direction(Snake, Direction);
+						ClientPid -> maybe_change_direction(Game, Snake, Direction);
 						_ -> Snake
 					end
 				end,
@@ -67,20 +67,26 @@ server(DbPid) ->
 			lager:info("Game ~p has been ticked.", [self()]),
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = move_snakes(Game),
-			snake_db:update_game(DbPid, Game2),
-			broadcast_updates(Game2),
+			Game3 = strip_snakes(detect_collisions(Game2), Game2),
+			snake_db:update_game(DbPid, Game3),
+			broadcast_updates(Game3),
 			server(DbPid);
 		_ ->
 			ok, server(DbPid)
 	end.
 
+strip_snakes(StripSnakes, Game = #game{snakes = Snakes}) ->
+	StripPids = [Pid || Snake = #snake{pid = Pid} <- StripSnakes],
+	
+	Game#game{snakes = lists:filter(fun (#snake{pid = Pid2}) -> not lists:member(Pid2, StripPids) end, Snakes)}.
+
 %% Snakes can't move backwards!
-maybe_change_direction(Snake = #snake{segments = Segments}, Direction) when length(Segments) > 1 ->
+maybe_change_direction(Game = #game{size_x = SizeX, size_y = SizeY}, Snake = #snake{segments = Segments}, Direction) when length(Segments) > 1 ->
 	%% The first segment is the head of our snake.
 	Segment1 = lists:nth(1, Segments),
 	Segment2 = lists:nth(2, Segments),
 	
-	{NewX, NewY} = calculate_new_x_y(Segment1#segment.x, Segment1#segment.y, Direction),
+	{NewX, NewY} = calculate_new_x_y(Segment1#segment.x, Segment1#segment.y, Direction, SizeX, SizeY),
 	
 	Collides = (Segment2#segment.x =:= NewX) and (Segment2#segment.y =:= NewY),
 	
@@ -90,7 +96,7 @@ maybe_change_direction(Snake = #snake{segments = Segments}, Direction) when leng
 		_ -> Snake#snake{direction = Direction, growth = 1}
 	end;
 	
-maybe_change_direction(Snake, Direction) ->
+maybe_change_direction(_Game, Snake, Direction) ->
 	Snake#snake{direction = Direction, growth = 1}.
 
 broadcast_updates(Game = #game{snakes = Snakes}) ->
@@ -109,10 +115,10 @@ move_snakes(Game) ->
 move_snakes(Game, [], MovedSnakes) ->
 	Game#game{snakes = lists:reverse(MovedSnakes)};
 
-move_snakes(Game, [Snake|Snakes], MovedSnakes) ->
-	move_snakes(Game, Snakes, [move_snake(Snake)|MovedSnakes]).
+move_snakes(Game = #game{size_x = SizeX, size_y = SizeY}, [Snake|Snakes], MovedSnakes) ->
+	move_snakes(Game, Snakes, [move_snake(Snake, SizeX, SizeY)|MovedSnakes]).
 
-move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}) ->
+move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Segment = #segment{x = X, y = Y}|Segments]}, SizeX, SizeY) ->
 	ShouldGrow = Growth > 0,
 	
 	%% Snakes grow one segment per tick as long as there're pending segments (Growth - number of pending segments)
@@ -121,19 +127,31 @@ move_snake(Snake = #snake{growth = Growth, direction = Direction, segments = [Se
 		_ -> 0
 	end,
 	
-	{NewX, NewY} = calculate_new_x_y(X, Y, Direction),
+	{NewX, NewY} = calculate_new_x_y(X, Y, Direction, SizeX, SizeY),
 	
 	Segments2 = move_segments(NewX, NewY, [Segment] ++ Segments, ShouldGrow),
 	
 	Snake#snake{segments = Segments2, growth = Growth2}.
 
-calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_UP    -> {X, Y - 1};
+%% looping
+calculate_new_x_y(X, Y, Direction, _SizeX, SizeY) when Direction =:= ?DIRECTION_UP, Y =:= 0 -> {X, SizeY - 1};
 
-calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_RIGHT -> {X + 1, Y};
+calculate_new_x_y(X, Y, Direction, _SizeX, _SizeY) when Direction =:= ?DIRECTION_UP    -> {X, Y - 1};
 
-calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_DOWN  -> {X, Y + 1};
+%% looping
+calculate_new_x_y(X, Y, Direction, SizeX, _SizeY) when Direction =:= ?DIRECTION_RIGHT, X + 1 =:= SizeX -> {0, Y};
 
-calculate_new_x_y(X, Y, Direction) when Direction =:= ?DIRECTION_LEFT  -> {X - 1, Y}.
+calculate_new_x_y(X, Y, Direction, _SizeX, _SizeY) when Direction =:= ?DIRECTION_RIGHT -> {X + 1, Y};
+
+%% looping
+calculate_new_x_y(X, Y, Direction, _SizeX, SizeY) when Direction =:= ?DIRECTION_DOWN, Y + 1 =:= SizeY  -> {X, 0};
+
+calculate_new_x_y(X, Y, Direction, _SizeX, _SizeY) when Direction =:= ?DIRECTION_DOWN  -> {X, Y + 1};
+
+%% looping
+calculate_new_x_y(X, Y, Direction, SizeX, _SizeY) when Direction =:= ?DIRECTION_LEFT, X =:= 0  -> {SizeX - 1, Y};
+
+calculate_new_x_y(X, Y, Direction, _SizeX, _SizeY) when Direction =:= ?DIRECTION_LEFT  -> {X - 1, Y}.
 
 detect_collisions(Game = #game{snakes = Snakes}) ->
 	detect_collisions(Snakes, Snakes, []).

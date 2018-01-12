@@ -4,7 +4,9 @@
 +++4) Terminate game if no players
 +++5) Snakes are too short, let's add more segments
 +++6) Assign a unique color to each snake
-7) Game states: waiting for players, playing
+7) Game states: waiting for players, playing, lost a game
 8) User has to leave before starting or joining a new game.
 9) Collision detection
-10) Moving through walls
++++10) Moving through walls
+11) Bug:
+{{badrecord,game},[{snake_game,move_snakes,1,[{file,"/Users/mateusz/erlang-concurrency/snake/_build/default/lib/snake/src/snake_game.erl"},{line,113}]},{snake_game,server,1,[{file,"/Users/mateusz/erlang-concurrency/snake/_build/default/lib/snake/src/snake_game.erl"},{line,69}]}]}

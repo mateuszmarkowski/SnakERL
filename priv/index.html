@@ -25,7 +25,10 @@ class Game {
 			'pink',
 			'purple',
 			'green',
-			'black'
+			'black',
+			'pink',
+			'gray',
+			'white',
 		];
 		
 		return colors[Math.floor((Math.random(colors.length) * colors.length))];
@@ -141,7 +144,7 @@ class MessageDeserializer {
 
 function start()
 {
-	ws.send("S#100,100");
+	ws.send("S#20,20");
 }
 function direction(dir)
 {
@@ -180,6 +183,27 @@ function open()
 	{
 		console.log('Connection closed');
 	};
+	
+	window.addEventListener('keydown', function (e) {
+		switch (e.keyCode) {
+			case 38:
+				direction(1);
+			break;
+			
+			case 40:
+				direction(3);
+			break;
+			
+			case 37:
+				direction(4);
+			break;
+			
+			case 39:
+				direction(2);
+			break;
+			
+		}
+	});
 }
 
 </script>
@@ -197,7 +221,7 @@ function open()
 <div id="msgs">
 </div>
 
-<canvas width="800" height="400" id="board">
+<canvas width="200" height="200" id="board">
 </canvas>
 </body>
 </html>
