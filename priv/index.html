@@ -23,9 +23,18 @@ class Snake {
 	}
 }
 
+class Treasure {
+	constructor(x, y, type) {
+		this.x = x;
+		this.y = y;
+		this.type = type;
+	}
+}
+
 class Game {
 	constructor(context) {
 		this.snakes = {};
+		this.treasures = [];
 		this.context = context;
 		this.sizeMultiplier = 10;
 		this.state = GameState.PENDING;
@@ -92,6 +101,8 @@ class Game {
 					}
 				}
 				
+				this.treasures = message.treasures;
+
 				this.render();
 			break;
 			
@@ -123,12 +134,19 @@ class Game {
 				this.context.fillRect.apply(this.context, this.coordsToSegment(segment[0], segment[1]));
 			}
 		}
+		
+		this.context.fillStyle = 'white';
+		
+		for (var treasure of this.treasures) {
+			this.context.fillRect.apply(this.context, this.coordsToSegment(treasure.x, treasure.y));
+		}
 	}
 }
 
 class UpdateMessage {
-	constructor(snakes) {
+	constructor(snakes, treasures) {
 		this.snakes = snakes;
+		this.treasures = treasures;
 	}
 }
 
@@ -143,8 +161,10 @@ class MessageDeserializer {
 		switch (text.slice(0, 2)) {
 			case 'D#':
 				var updateTexts = text.slice(2).split('_'),
+					treasureTexts = updateTexts[1].split('|'),
 					snakeTexts = updateTexts[2].split('|'),
-					snakes = [];
+					snakes = [],
+					treasures = [];
 
 				for (var snakeText of snakeTexts) {
 					var snakeParts = snakeText.split('='),
@@ -165,7 +185,22 @@ class MessageDeserializer {
 					snakes.push(snake);
 				}
 				
-				return new UpdateMessage(snakes);
+				for (var treasureText of treasureTexts) {		
+					if (treasureText.length == 0) {
+						continue;
+					}
+								
+					var treasureParts = treasureText.split('='),
+						treasureType = treasureParts[0],
+						XY = treasureParts[1].split(','),
+						treasure;
+				
+					treasure = new Treasure(parseFloat(XY[0]), parseFloat(XY[1]), treasureType);
+					
+					treasures.push(treasure);
+				}
+				
+				return new UpdateMessage(snakes, treasures);
 			break;
 			
 			case 'L#':

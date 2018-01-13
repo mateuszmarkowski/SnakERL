@@ -35,8 +35,8 @@ term_to_text({id, Pid}) ->
 	"I#" ++ pid_to_list(Pid);
 
 %% #game{snakes=Snakes}
-term_to_text({update, Game = #game{snakes = Snakes, state = State}}) ->
-	"D#" ++ state_to_text(State) ++ "__" ++ snakes_to_text(Snakes);
+term_to_text({update, Game = #game{treasures = Treasures, snakes = Snakes, state = State}}) ->
+	"D#" ++ state_to_text(State) ++ "_" ++ treasures_to_text(Treasures) ++ "_" ++ snakes_to_text(Snakes);
 
 term_to_text({list, Games}) ->
 	"L#" ++ string:join([pid_to_list(Pid) || #game{pid = Pid} <- Games], ";").
@@ -53,8 +53,13 @@ snakes_to_text([#snake{pid = Pid, state = State, segments = Segments}|Snakes], P
 		[pid_to_list(Pid) ++ "=" ++ state_to_text(State) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
 	).
 
+treasures_to_text(Treasures) ->
+	string:join([treasure_type_to_text(Type) ++ "=" ++ integer_to_list(X) ++ "," ++ integer_to_list(Y) || #treasure{type = Type, x = X, y = Y} <- Treasures], "|").
+
 state_to_text(pending) -> "P";
 
 state_to_text(active) -> "A";
 
 state_to_text(collision) -> "C".
+
+treasure_type_to_text(fodder) -> "F".

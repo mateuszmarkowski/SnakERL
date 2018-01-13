@@ -69,15 +69,43 @@ server(DbPid) ->
 			Game = snake_db:get_game(DbPid, self()),
 			%% Strip snakes whose collision was detected during the previous tick
 			Game2 = Game#game{snakes = strip_colliding_snakes(Game#game.snakes)},
-			Game3 = move_snakes(Game2),
+			Game3 = detect_consumptions(Game2),
+			Game4 = move_snakes(Game3),
 			%% Update state of colliding snakes and give the interface a chance to tell user about it
-			Game4 = Game3#game{snakes = detect_collisions(Game3)},
-			snake_db:update_game(DbPid, Game4),
-			broadcast_updates(Game4),
+			Game5 = Game4#game{snakes = detect_collisions(Game4)},
+			
+			Game6 = case rand:uniform(2) of
+				1 -> add_treasure(Game5, fodder);
+				_ -> Game5
+			end,
+			lager:info("GAME ~p", [Game6]),
+			snake_db:update_game(DbPid, Game6),
+			broadcast_updates(Game5),
 			server(DbPid);
 		_ ->
 			ok, server(DbPid)
 	end.
+
+detect_consumptions(Game = #game{snakes = Snakes, treasures = Treasures}) ->
+	detect_consumptions(Game, Snakes, [], Treasures).
+	
+
+detect_consumptions(Game, [], AnalyzedSnakes, Treasures) ->
+	Game#game{snakes = AnalyzedSnakes, treasures = Treasures};
+
+detect_consumptions(Game = #game{size_x = SizeX, size_y = SizeY}, [Snake = #snake{direction = Direction, segments = [#segment{x = X, y = Y}|Segments]}|Snakes], AnalyzedSnakes, Treasures) ->
+	{NewX, NewY} = calculate_new_x_y(X, Y, Direction, SizeX, SizeY),
+	
+	Treasure = lists:filter(fun(#treasure{x = X2, y = Y2}) -> (X2 =:= NewX) and (Y2 =:= NewY) end, Treasures),
+	
+	case length(Treasure) of 
+		1 -> detect_consumptions(Game, Snakes, [Snake#snake{growth = Snake#snake.growth + 1}|AnalyzedSnakes], lists:filter(fun(#treasure{x = X2, y = Y2}) -> (X2 =/= NewX) or (Y2 =/= NewY) end, Treasures));
+		_ -> detect_consumptions(Game, Snakes, [Snake|AnalyzedSnakes], Treasures)
+	end.
+
+add_treasure(Game = #game{treasures = Treasures}, Type) ->
+	{X, Y} = get_free_random_spot(Game),
+	Game#game{treasures = [#treasure{type = Type, x = X, y = Y}|Treasures]}.
 
 strip_colliding_snakes(Snakes) ->	
 	[Snake || Snake = #snake{state = State} <- Snakes, State =/= collision].
@@ -94,8 +122,7 @@ maybe_change_direction(Game = #game{size_x = SizeX, size_y = SizeY}, Snake = #sn
 	
 	case Collides of
 		true -> Snake;
-		%% Snakes grow when changing direction, just for testing.
-		_ -> Snake#snake{direction = Direction, growth = 1}
+		_ -> Snake#snake{direction = Direction}
 	end;
 	
 maybe_change_direction(_Game, Snake, Direction) ->
@@ -202,3 +229,25 @@ move_segments(NewX, NewY, Segments, _MovedSegments, true) ->
 %% X,Y of the preceding segment becomes X,Y for the current segment
 move_segments(NewX, NewY, [Segment = #segment{x = NextX, y = NextY}|Segments], MovedSegments, false) ->
 	move_segments(NextX, NextY, Segments, [#segment{x = NewX, y = NewY}|MovedSegments], false).
+
+get_free_random_spot(Game = #game{size_x = SizeX, size_y = SizeY, snakes = Snakes, treasures = Treasures}) ->
+	OccupiedSpots = extract_segment_positions(Snakes) ++ [{X, Y} || #treasure{x = X, y = Y} <- Treasures],
+	
+	get_free_random_spot(OccupiedSpots, SizeX, SizeY).
+
+get_free_random_spot(OccupiedSpots, SizeX, SizeY) ->
+	Spot = {rand:uniform(SizeX) - 1, rand:uniform(SizeY) - 1},
+	
+	case lists:member(Spot, OccupiedSpots) of
+		true -> get_free_random_spot(OccupiedSpots, SizeX, SizeY);
+		false -> Spot
+	end.
+
+extract_segment_positions(Snakes) ->
+	extract_segment_positions(Snakes, []).
+
+extract_segment_positions([], Positions) ->
+	Positions;
+
+extract_segment_positions([#snake{segments = Segments}|Snakes], Positions) ->
+	extract_segment_positions(Snakes, [{X, Y} || #segment{x = X, y = Y} <- Segments] ++ Positions).

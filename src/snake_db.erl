@@ -19,7 +19,7 @@ start() ->
 server() ->
 	receive
 		{update_game, Game} -> 
-			ets:update_element(?GAME_TABLE, Game#game.pid, {#game.snakes, Game#game.snakes}), server();
+			ets:update_element(?GAME_TABLE, Game#game.pid, [{#game.snakes, Game#game.snakes}, {#game.treasures, Game#game.treasures}, {#game.state, Game#game.state}]), server();
 		{new_game, Game} ->
 			ets:insert(?GAME_TABLE, Game), server();
 		{list_games, Pid} ->

@@ -3,7 +3,8 @@
 	state=pending,
 	size_x,
 	size_y,
-	snakes = []
+	snakes = [],
+	treasures = []
 }).
 
 -record(snake, {
@@ -15,6 +16,12 @@
 }).
 
 -record(segment, {
+	x,
+	y
+}).
+
+-record(treasure, {
+	type,
 	x,
 	y
 }).
