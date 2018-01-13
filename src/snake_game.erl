@@ -37,6 +37,7 @@ server(DbPid) ->
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = Game#game{snakes = [#snake{pid = ClientPid, direction = 3, segments = [#segment{x = 0, y = 0}]}|Game#game.snakes]},
 			snake_db:update_game(DbPid, Game2),
+			ClientPid ! {id, ClientPid},
 			server(DbPid);
 		{leave, ClientPid} ->
 			Game = snake_db:get_game(DbPid, self()),
@@ -66,19 +67,20 @@ server(DbPid) ->
 		tick ->
 			lager:info("Game ~p has been ticked.", [self()]),
 			Game = snake_db:get_game(DbPid, self()),
-			Game2 = move_snakes(Game),
-			Game3 = strip_snakes(detect_collisions(Game2), Game2),
-			snake_db:update_game(DbPid, Game3),
-			broadcast_updates(Game3),
+			%% Strip snakes whose collision was detected during the previous tick
+			Game2 = Game#game{snakes = strip_colliding_snakes(Game#game.snakes)},
+			Game3 = move_snakes(Game2),
+			%% Update state of colliding snakes and give the interface a chance to tell user about it
+			Game4 = Game3#game{snakes = detect_collisions(Game3)},
+			snake_db:update_game(DbPid, Game4),
+			broadcast_updates(Game4),
 			server(DbPid);
 		_ ->
 			ok, server(DbPid)
 	end.
 
-strip_snakes(StripSnakes, Game = #game{snakes = Snakes}) ->
-	StripPids = [Pid || Snake = #snake{pid = Pid} <- StripSnakes],
-	
-	Game#game{snakes = lists:filter(fun (#snake{pid = Pid2}) -> not lists:member(Pid2, StripPids) end, Snakes)}.
+strip_colliding_snakes(Snakes) ->	
+	[Snake || Snake = #snake{state = State} <- Snakes, State =/= collision].
 
 %% Snakes can't move backwards!
 maybe_change_direction(Game = #game{size_x = SizeX, size_y = SizeY}, Snake = #snake{segments = Segments}, Direction) when length(Segments) > 1 ->
@@ -156,13 +158,13 @@ calculate_new_x_y(X, Y, Direction, _SizeX, _SizeY) when Direction =:= ?DIRECTION
 detect_collisions(Game = #game{snakes = Snakes}) ->
 	detect_collisions(Snakes, Snakes, []).
 	
-detect_collisions([], _AllSnakes, CollidingSnakes) ->
-	CollidingSnakes;
+detect_collisions([], _AllSnakes, AnalyzedSnakes) ->
+	AnalyzedSnakes;
 
-detect_collisions([Snake = #snake{pid = Pid, segments = [Segment|Segments]}|RemainingSnakes], AllSnakes, CollidingSnakes) ->
+detect_collisions([Snake = #snake{pid = Pid, segments = [Segment|Segments]}|RemainingSnakes], AllSnakes, AnalyzedSnakes) ->
 	case does_collide(Segment, get_all_segments(AllSnakes, Pid)) of	
-		true -> detect_collisions(RemainingSnakes, AllSnakes, [Snake|CollidingSnakes]);
-		false -> detect_collisions(RemainingSnakes, AllSnakes, CollidingSnakes)
+		true -> detect_collisions(RemainingSnakes, AllSnakes, [Snake#snake{state = collision}|AnalyzedSnakes]);
+		false -> detect_collisions(RemainingSnakes, AllSnakes, [Snake|AnalyzedSnakes])
 	end.
 
 does_collide(_HeadSegment, []) -> false;

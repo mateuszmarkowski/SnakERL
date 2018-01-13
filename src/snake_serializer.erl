@@ -31,9 +31,12 @@ parse_start(Text) ->
 parse_direction(Text) ->
 	{direction, list_to_integer(binary_to_list(string:slice(Text, 2)))}.
 
+term_to_text({id, Pid}) ->
+	"I#" ++ pid_to_list(Pid);
+
 %% #game{snakes=Snakes}
-term_to_text({update, #game{snakes = Snakes}}) ->
-	"D#" ++ snakes_to_text(Snakes);
+term_to_text({update, Game = #game{snakes = Snakes, state = State}}) ->
+	"D#" ++ state_to_text(State) ++ "__" ++ snakes_to_text(Snakes);
 
 term_to_text({list, Games}) ->
 	"L#" ++ string:join([pid_to_list(Pid) || #game{pid = Pid} <- Games], ";").
@@ -44,8 +47,14 @@ snakes_to_text(Snakes) ->
 snakes_to_text([], Parts) ->
 	string:join(lists:reverse(Parts), "|");
 
-snakes_to_text([#snake{pid = Pid, segments = Segments}|Snakes], Parts) ->
+snakes_to_text([#snake{pid = Pid, state = State, segments = Segments}|Snakes], Parts) ->
 	snakes_to_text(
 		Snakes,
-		[pid_to_list(Pid) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
+		[pid_to_list(Pid) ++ "=" ++ state_to_text(State) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
 	).
+
+state_to_text(pending) -> "P";
+
+state_to_text(active) -> "A";
+
+state_to_text(collision) -> "C".

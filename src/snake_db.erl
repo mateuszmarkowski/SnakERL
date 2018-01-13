@@ -48,7 +48,7 @@ get_game(ServerPid, GamePid) ->
 	
 	receive
 		{get_game_response, Game} -> Game;
-		_ -> ok
+		R -> lager:info("Got an odd thing from the ETS ~p", [R]), get_game(ServerPid, GamePid)
 	end.
 
 delete_game(ServerPid, Game) ->

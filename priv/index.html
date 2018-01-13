@@ -4,9 +4,20 @@
 <script type="text/javascript">
 var ws = new Object;
 
+class SnakeState {}
+
+SnakeState.ACTIVE = 'A';
+SnakeState.COLLISION = 'C';
+
+class GameState {}
+
+GameState.ACTIVE = 'A';
+GameState.PENDING = 'P';
+
 class Snake {
-	constructor(id, segments, color) {
+	constructor(id, state, segments, color) {
 		this.id = id;
+		this.state = state;
 		this.segments = segments;
 		this.color = color;
 	}
@@ -17,6 +28,7 @@ class Game {
 		this.snakes = {};
 		this.context = context;
 		this.sizeMultiplier = 10;
+		this.state = GameState.PENDING;
 	}
 	
 	getRandomColor () {
@@ -37,9 +49,18 @@ class Game {
 	addOrUpdateSnake(snake) {
 		if (snake.id in this.snakes) {
 			this.snakes[snake.id].segments = snake.segments;
+			this.snakes[snake.id].state = snake.state;
 		} else {
 			this.snakes[snake.id] = snake;
 			this.snakes[snake.id].color = this.getRandomColor();
+		}
+		
+		this.haveWeLost();
+	}
+	
+	haveWeLost() {
+		if (this.playerId in this.snakes && this.snakes[this.playerId].state == SnakeState.COLLISION) {
+			alert('YOU LOST!');
 		}
 	}
 	
@@ -53,6 +74,10 @@ class Game {
 		switch (message.constructor.name) {
 			case 'UpdateMessage':
 				var snakeIds = [];
+			
+				if (this.playerId == undefined) {
+					return;
+				}
 			
 				for (var snake of message.snakes) {
 					this.addOrUpdateSnake(snake);
@@ -68,6 +93,10 @@ class Game {
 				}
 				
 				this.render();
+			break;
+			
+			case 'IdMessage':
+				this.playerId = message.id;
 			break;
 		}
 	}
@@ -103,16 +132,25 @@ class UpdateMessage {
 	}
 }
 
+class IdMessage {
+	constructor(id) {
+		this.id = id;
+	}
+}
+
 class MessageDeserializer {
 	static deserialize(text) {
 		switch (text.slice(0, 2)) {
 			case 'D#':
-				var snakeTexts = text.slice(2).split('|'),
+				var updateTexts = text.slice(2).split('_'),
+					snakeTexts = updateTexts[2].split('|'),
 					snakes = [];
-					
+
 				for (var snakeText of snakeTexts) {
-					var snakeId = snakeText.split('=')[0],
-						segmentTexts = snakeText.split('=')[1].split(';'),
+					var snakeParts = snakeText.split('='),
+						snakeId = snakeParts[0],
+						snakeState = snakeParts[1],
+						segmentTexts = snakeParts[2].split(';'),
 						segments = [],
 						snake;
 					
@@ -122,7 +160,7 @@ class MessageDeserializer {
 						return [parseFloat(XY[0]), parseFloat(XY[1])];
 					});
 					
-					snake = new Snake(snakeId, segments);
+					snake = new Snake(snakeId, snakeState, segments);
 					
 					snakes.push(snake);
 				}
@@ -132,6 +170,11 @@ class MessageDeserializer {
 			
 			case 'L#':
 				
+			break;
+			
+			//the server tells us what our ID is
+			case 'I#':
+				return new IdMessage(text.slice(2));
 			break;
 			
 			default:
