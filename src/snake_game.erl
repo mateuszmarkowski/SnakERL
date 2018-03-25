@@ -10,7 +10,7 @@
 -export([start/4, server/0, join/3, leave/2, direction/3]).
 
 -ifdef(EUNIT).
--export([move_segments/4, move_snakes/1, detect_collisions/1]).
+-export([move_segments/4, move_snake/3, detect_collisions/1]).
 -endif.
 
 start(X, Y, Name, MaxSnakes) ->

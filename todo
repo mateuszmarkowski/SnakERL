@@ -15,7 +15,7 @@
 +++4) Score tally
 +++5) Support for leaving a game
 7) Update tests (e.g. serializer)
-8) Move Cowboy server into the app's supervision tree
-9) Rewrite snake_db using gen_server
++++8) Move Cowboy server into the app's supervision tree
++++9) Rewrite snake_db using gen_server
 +++10) List game participants
 11) Rewrite snake_game using gen_server
