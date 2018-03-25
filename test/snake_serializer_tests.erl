@@ -9,34 +9,34 @@ term_to_text_test_() ->
 			"Update about a single snake game.",
 			test_term_to_text(
 				{update, #game{state = pending, snakes = [
-					#snake{pid = list_to_pid("<0.23.2>"), segments = [
+					#snake{pid = list_to_pid("<0.23.2>"), name = <<"Howard">>, segments = [
 						#segment{x = 10, y = -3},
 						#segment{x = 11, y = -3},
 						#segment{x = 12, y = -3},
 						#segment{x = 12, y = -4}
 					]}
 				]}},
-				"D#P__<0.23.2>=A=10,-3;11,-3;12,-3;12,-4"
+				"D#P__<0.23.2>=Howard=A=10,-3;11,-3;12,-3;12,-4"
 			)
 		},
 		{
 			"Update about a two-snakes game.",
 			test_term_to_text(
 				{update, #game{state = pending, snakes = [
-					#snake{pid = list_to_pid("<0.23.2>"), segments = [
+					#snake{pid = list_to_pid("<0.23.2>"), name = <<"Howard">>, segments = [
 						#segment{x = 10, y = -3},
 						#segment{x = 11, y = -3},
 						#segment{x = 12, y = -3},
 						#segment{x = 12, y = -4}
 					]},
-					#snake{pid = list_to_pid("<0.41.1>"), segments = [
+					#snake{pid = list_to_pid("<0.41.1>"), name = <<"Peter">>, segments = [
 						#segment{x = 6, y = 10},
 						#segment{x = 7, y = 11},
 						#segment{x = 8, y = 12},
 						#segment{x = 9, y = 13}
 					]}
 				]}},
-				"D#P__<0.23.2>=A=10,-3;11,-3;12,-3;12,-4|<0.41.1>=A=6,10;7,11;8,12;9,13"
+				"D#P__<0.23.2>=Howard=A=10,-3;11,-3;12,-3;12,-4|<0.41.1>=Peter=A=6,10;7,11;8,12;9,13"
 			)
 		},
 		{
