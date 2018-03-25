@@ -18,6 +18,7 @@ handle(_Req, State) ->
 websocket_init(_TransportName, Req, _Opts) ->
 	lager:info("Socket pid ~p", [self()]),
 	lager:info("websocket init"),
+	snake_system:join(snake_system, self()),
 	{ok, Req, [{db_pid, snake_db:start()}]}.
 
 websocket_handle({text, Msg}, Req, State) ->
@@ -32,9 +33,15 @@ websocket_handle({text, Msg}, Req, State) ->
 	
 	{Response, State2} = case snake_serializer:text_to_term(Msg) of
 		list -> {snake_serializer:term_to_text({list, snake_db:list_games(DbPid)}), State};
-		{start, X, Y} -> NewGamePid = snake_game:start(DbPid, X, Y), snake_game:join(NewGamePid, self()), {<<"">>, [{game_pid, NewGamePid}|State]};
-		{join, NewGamePid} -> snake_game:join(NewGamePid, self()), {<<"">>, [{game_pid, NewGamePid}|State]};
+		{start, X, Y, Name, MaxSnakes} ->
+			NewGamePid = snake_game:start(DbPid, X, Y, Name, MaxSnakes),
+			snake_game:join(NewGamePid, self(), Name), {<<"">>,
+			[{game_pid, NewGamePid}|State]};
+		{join, NewGamePid, Name} -> snake_game:join(NewGamePid, self(), Name), {<<"">>, [{game_pid, NewGamePid}|State]};
 		{direction, Direction} when is_pid(GamePid) -> snake_game:direction(GamePid, self(), Direction), {<<"">>, State};
+		leave ->
+			snake_game:leave(GamePid, self()),
+			{<<"">>, State};
 		_ -> {<<"fooo">>, State}
 	end,
 
@@ -48,7 +55,7 @@ websocket_info({timeout, _Ref, Msg}, Req, State) ->
 	{reply, {text, Msg}, Req, State};
 
 websocket_info(Update, Req, State) ->
-	lager:info("gotten ~p", [Update]),
+	%%lager:info("gotten ~p", [Update]),
 	{reply, {text, snake_serializer:term_to_text(Update)}, Req, State}.
 
 websocket_terminate(_Reason, _Req, State) ->

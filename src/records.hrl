@@ -1,6 +1,8 @@
 -record(game, {
 	pid,
+	name,
 	state=pending,
+	max_snakes,
 	size_x,
 	size_y,
 	snakes = [],
@@ -9,6 +11,7 @@
 
 -record(snake, {
 	pid,
+	name,
 	state=active,
 	direction,
 	growth=0,

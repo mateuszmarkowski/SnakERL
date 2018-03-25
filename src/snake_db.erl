@@ -27,7 +27,8 @@ server() ->
 		{get_game, GamePid, Pid} ->
 			Pid ! {get_game_response, lists:nth(1, ets:lookup(?GAME_TABLE, GamePid))}, server();
 		{delete_game, Game} ->
-			ets:delete(?GAME_TABLE, Game#game.pid)
+			ets:delete(?GAME_TABLE, Game#game.pid),
+			server()
 	end.
 
 update_game(ServerPid, Game) ->
@@ -47,8 +48,7 @@ get_game(ServerPid, GamePid) ->
 	ServerPid ! {get_game, GamePid, self()},
 	
 	receive
-		{get_game_response, Game} -> Game;
-		R -> lager:info("Got an odd thing from the ETS ~p", [R]), get_game(ServerPid, GamePid)
+		{get_game_response, Game} -> Game
 	end.
 
 delete_game(ServerPid, Game) ->

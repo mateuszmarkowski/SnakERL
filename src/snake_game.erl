@@ -7,20 +7,20 @@
 
 -include("records.hrl").
 
--export([start/3, server/1, join/2, leave/2, direction/3]).
+-export([start/5, server/1, join/3, leave/2, direction/3]).
 
 -ifdef(EUNIT).
--export([move_segments/4, move_snake/1, detect_collisions/1]).
+-export([move_segments/4, move_snakes/1, detect_collisions/1]).
 -endif.
 
-start(DbPid, X, Y) ->
+start(DbPid, X, Y, Name, MaxSnakes) ->
 	GamePid = spawn(?MODULE, server, [DbPid]),
-	snake_db:new_game(DbPid, #game{pid = GamePid, size_x = X, size_y = Y}),
-	timer:send_interval(500, GamePid, tick),
+	snake_db:new_game(DbPid, #game{pid = GamePid, size_x = X, size_y = Y, name = Name, max_snakes = MaxSnakes}),
+	timer:send_interval(300, GamePid, tick),
 	GamePid.
 
-join(GamePid, ClientPid) ->
-	GamePid ! {join, ClientPid},
+join(GamePid, ClientPid, Name) ->
+	GamePid ! {join, ClientPid, Name},
 	ok.
 
 leave(GamePid, ClientPid) ->
@@ -33,20 +33,26 @@ direction(GamePid, ClientPid, Direction) ->
 
 server(DbPid) ->
 	receive
-		{join, ClientPid} ->
+		{join, ClientPid, Name} ->
 			Game = snake_db:get_game(DbPid, self()),
-			Game2 = Game#game{snakes = [#snake{pid = ClientPid, direction = 3, segments = [#segment{x = 0, y = 0}]}|Game#game.snakes]},
+			Game2 = Game#game{snakes = [#snake{pid = ClientPid, name = Name, direction = 3, segments = [#segment{x = 0, y = 0}]}|Game#game.snakes]},
 			snake_db:update_game(DbPid, Game2),
 			ClientPid ! {id, ClientPid},
+			broadcast_game_list(DbPid),
 			server(DbPid);
 		{leave, ClientPid} ->
+			%%lager:info("Leaving PID: ~p Game PID: ~p", [ClientPid, self()]),
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = Game#game{snakes = [Snake || Snake = #snake{pid = Pid} <- Game#game.snakes, Pid =/= ClientPid]},
 			
 			case length(Game2#game.snakes) of
-				0 -> lager:info("Game ~p stopped because there are no more snakes.", [self()]), snake_db:delete_game(DbPid, Game2);
+				0 ->
+					lager:info("Game ~p stopped because there are no more snakes.", [self()]),
+					snake_db:delete_game(DbPid, Game2),
+					broadcast_game_list(DbPid);
 				_ -> 
 					snake_db:update_game(DbPid, Game2),
+					broadcast_game_list(DbPid),
 					server(DbPid)
 			end;
 
@@ -54,7 +60,7 @@ server(DbPid) ->
 			Game = snake_db:get_game(DbPid, self()),
 			Game2 = Game#game{snakes = lists:map(
 				fun (Snake = #snake{pid = CurrentClientPid}) ->
-					lager:info("???"),
+
 					case CurrentClientPid of
 						
 						ClientPid -> maybe_change_direction(Game, Snake, Direction);
@@ -65,7 +71,7 @@ server(DbPid) ->
 			snake_db:update_game(DbPid, Game2),
 			server(DbPid);
 		tick ->
-			lager:info("Game ~p has been ticked.", [self()]),
+			%%lager:info("Game ~p has been ticked.", [self()]),
 			Game = snake_db:get_game(DbPid, self()),
 			%% Strip snakes whose collision was detected during the previous tick
 			Game2 = Game#game{snakes = strip_colliding_snakes(Game#game.snakes)},
@@ -74,11 +80,11 @@ server(DbPid) ->
 			%% Update state of colliding snakes and give the interface a chance to tell user about it
 			Game5 = Game4#game{snakes = detect_collisions(Game4)},
 			
-			Game6 = case rand:uniform(2) of
+			Game6 = case rand:uniform(10) of
 				1 -> add_treasure(Game5, fodder);
 				_ -> Game5
 			end,
-			lager:info("GAME ~p", [Game6]),
+			%%lager:info("GAME ~p", [Game6]),
 			snake_db:update_game(DbPid, Game6),
 			broadcast_updates(Game5),
 			server(DbPid);
@@ -127,6 +133,9 @@ maybe_change_direction(Game = #game{size_x = SizeX, size_y = SizeY}, Snake = #sn
 	
 maybe_change_direction(_Game, Snake, Direction) ->
 	Snake#snake{direction = Direction, growth = 1}.
+
+broadcast_game_list(DbPid) ->
+	snake_system:broadcast(snake_system, {list, snake_db:list_games(DbPid)}).
 
 broadcast_updates(Game = #game{snakes = Snakes}) ->
 	broadcast_updates(Game, [ClientPid || Snake = #snake{pid = ClientPid} <- Snakes]).

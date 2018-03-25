@@ -18,15 +18,17 @@ text_to_term(Text) ->
 		<<"S#">> -> parse_start(Text);
 		<<"D#">> -> parse_direction(Text);
 		<<"L#">> -> list;
+		<<"Q#">> -> leave;
 		_ -> invalid
 	end.
 
 parse_join(Text) ->
-	{join, list_to_pid(binary_to_list(string:slice(Text, 2)))}.
+	[PidText, Name] = string:split(string:slice(Text, 2), ",", all),
+	{join, list_to_pid(binary_to_list(PidText)), Name}.
 
 parse_start(Text) ->
-	[SizeX, SizeY] = string:split(string:slice(Text, 2), ",", all),
-	{start, list_to_integer(binary_to_list(SizeX)), list_to_integer(binary_to_list(SizeY))}.
+	[SizeX, SizeY, Name, MaxSnakes] = string:split(string:slice(Text, 2), ",", all),
+	{start, binary_to_integer(SizeX), binary_to_integer(SizeY), Name, binary_to_integer(MaxSnakes)}.
 
 parse_direction(Text) ->
 	{direction, list_to_integer(binary_to_list(string:slice(Text, 2)))}.
@@ -39,7 +41,7 @@ term_to_text({update, Game = #game{treasures = Treasures, snakes = Snakes, state
 	"D#" ++ state_to_text(State) ++ "_" ++ treasures_to_text(Treasures) ++ "_" ++ snakes_to_text(Snakes);
 
 term_to_text({list, Games}) ->
-	"L#" ++ string:join([pid_to_list(Pid) || #game{pid = Pid} <- Games], ";").
+	"L#" ++ string:join([pid_to_list(Pid) ++ "," ++ binary_to_list(Name) ++ "," ++ integer_to_list(length(Snakes)) ++ "," ++ integer_to_list(MaxSnakes) || #game{pid = Pid, name = Name, snakes = Snakes, max_snakes = MaxSnakes} <- Games], ";").
 
 snakes_to_text(Snakes) ->
 	snakes_to_text(Snakes, []).
@@ -47,10 +49,10 @@ snakes_to_text(Snakes) ->
 snakes_to_text([], Parts) ->
 	string:join(lists:reverse(Parts), "|");
 
-snakes_to_text([#snake{pid = Pid, state = State, segments = Segments}|Snakes], Parts) ->
+snakes_to_text([#snake{pid = Pid, name = Name, state = State, segments = Segments}|Snakes], Parts) ->
 	snakes_to_text(
 		Snakes,
-		[pid_to_list(Pid) ++ "=" ++ state_to_text(State) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
+		[pid_to_list(Pid) ++ "=" ++ binary_to_list(Name) ++ "=" ++ state_to_text(State) ++ "=" ++ string:join([integer_to_list(X) ++ "," ++ integer_to_list(Y) || #segment{x = X, y = Y} <- Segments], ";")|Parts]
 	).
 
 treasures_to_text(Treasures) ->

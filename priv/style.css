@@ -1,0 +1,72 @@
+body {
+	margin: 0px;
+	padding: 0px;
+	font-family: 'Open Sans', sans-serif;
+	color: #3C3939;
+}
+h1 {
+	font-size: 45px;
+	margin: 0px;
+}
+h1, h2 {
+	font-family: 'Russo One', sans-serif;
+	color: #191313;
+}
+#container {
+	width: 100%;
+}
+.left-pane {
+	width: 640px;
+	float: left;
+	padding: 15px;
+}
+.right-pane {
+	padding: 15px;
+	float: left;
+	width: 300px;
+}
+#games-list {
+	max-height: 300px;
+	overflow-y: scroll;
+}
+input {
+	display: block;
+	font-family: 'Open Sans', sans-serif;
+	font-size: 14px;
+}
+input[type="text"], input[type="submit"] {
+	width: 80%;
+}
+button {
+	font-family: 'Open Sans', sans-serif;
+	font-size: 14px;
+}
+a {
+	color: #650039;
+}
+a:hover {
+	color: #C4006F;
+}
+#board-placeholder p {
+	margin: 0px;
+}
+#status-pane {
+	display: none;
+}
+#settings-pane {
+	display: none;
+}
+#board-placeholder {
+	width: 600px;
+	height: 600px;
+	background: repeating-linear-gradient(-45deg, #ebeaea, #ebeaea 5px, white 5px, white 10px);
+	display: flex;
+	align-items: center;
+	justify-content:center;
+}
+#game-pane {
+	display: none;
+}
+#board {
+	background-color: #ebeaea;
+}
