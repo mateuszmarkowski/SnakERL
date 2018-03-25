@@ -19,24 +19,22 @@ websocket_init(_TransportName, Req, _Opts) ->
 	lager:info("Socket pid ~p", [self()]),
 	lager:info("websocket init"),
 	snake_system:join(snake_system, self()),
-	{ok, Req, [{db_pid, snake_db:start()}]}.
+	{ok, Req, []}.
 
 websocket_handle({text, Msg}, Req, State) ->
 	lager:info("Got message ~p", [Msg]),
 	
 	lager:info("Parsed: ~p", [snake_serializer:text_to_term(Msg)]),
 	
-	DbPid = proplists:get_value(db_pid, State),
-	
 	%% GamePid is available only after user joins a game 
 	GamePid = proplists:get_value(game_pid, State),
 	
 	{Response, State2} = case snake_serializer:text_to_term(Msg) of
-		list -> {snake_serializer:term_to_text({list, snake_db:list_games(DbPid)}), State};
+		list -> {snake_serializer:term_to_text({list, snake_db:list_games()}), State};
 		{start, X, Y, Name, MaxSnakes} ->
-			NewGamePid = snake_game:start(DbPid, X, Y, Name, MaxSnakes),
-			snake_game:join(NewGamePid, self(), Name), {<<"">>,
-			[{game_pid, NewGamePid}|State]};
+			NewGamePid = snake_game:start(X, Y, Name, MaxSnakes),
+			snake_game:join(NewGamePid, self(), Name),
+			{<<"">>, [{game_pid, NewGamePid}|State]};
 		{join, NewGamePid, Name} -> snake_game:join(NewGamePid, self(), Name), {<<"">>, [{game_pid, NewGamePid}|State]};
 		{direction, Direction} when is_pid(GamePid) -> snake_game:direction(GamePid, self(), Direction), {<<"">>, State};
 		leave ->

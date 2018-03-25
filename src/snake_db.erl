@@ -1,55 +1,56 @@
 -module(snake_db).
 
--define(GAME_TABLE, snake_game_table).
+-behaviour(gen_server).
 
--export([start/0, update_game/2, new_game/2, list_games/1, get_game/2, delete_game/2, server/0]).
+-export([start_link/0, init/1, handle_call/3, handle_cast/2, update_game/1, new_game/1, list_games/0, get_game/1, delete_game/1]).
 
 -include("records.hrl").
 
-start() ->
+-define(GAME_TABLE, snake_game_table).
+
+start_link() ->
+	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+	
+init([]) ->
 	case ets:info(?GAME_TABLE, owner) of
-		undefined ->
-			ets:new(?GAME_TABLE, [set, named_table, {keypos, #game.pid}]),
-			ServerPid = spawn(?MODULE, server, []),
-			ets:give_away(?GAME_TABLE, ServerPid, []),
-			ServerPid;
+		undefined -> ets:new(?GAME_TABLE, [set, named_table, {keypos, #game.pid}]);
 		ServerPid -> ServerPid
-	end.
+	end,
+	{ok, []}.
 	
-server() ->
-	receive
-		{update_game, Game} -> 
-			ets:update_element(?GAME_TABLE, Game#game.pid, [{#game.snakes, Game#game.snakes}, {#game.treasures, Game#game.treasures}, {#game.state, Game#game.state}]), server();
-		{new_game, Game} ->
-			ets:insert(?GAME_TABLE, Game), server();
-		{list_games, Pid} ->
-			Pid ! {list_games_response, ets:tab2list(?GAME_TABLE)}, server();
-		{get_game, GamePid, Pid} ->
-			Pid ! {get_game_response, lists:nth(1, ets:lookup(?GAME_TABLE, GamePid))}, server();
-		{delete_game, Game} ->
-			ets:delete(?GAME_TABLE, Game#game.pid),
-			server()
-	end.
+update_game(Game) ->
+	gen_server:cast(?MODULE, {update_game, Game}).
+	
+new_game(Game) ->
+	gen_server:cast(?MODULE, {new_game, Game}).
+	
+list_games() ->
+	gen_server:call(?MODULE, list_games).
 
-update_game(ServerPid, Game) ->
-	ServerPid ! {update_game, Game}.
-	
-new_game(ServerPid, Game) ->
-	ServerPid ! {new_game, Game}.
-	
-list_games(ServerPid) ->
-	ServerPid ! {list_games, self()},
-	receive 
-		{list_games_response, Games} -> Games;
-		_ -> []
-	end.
+get_game(GamePid) ->
+	gen_server:call(?MODULE, {get_game, GamePid}).
 
-get_game(ServerPid, GamePid) ->
-	ServerPid ! {get_game, GamePid, self()},
-	
-	receive
-		{get_game_response, Game} -> Game
-	end.
+delete_game(Game) ->
+	gen_server:cast(?MODULE, {delete_game, Game}).
 
-delete_game(ServerPid, Game) ->
-	ServerPid ! {delete_game, Game}.
+handle_cast({update_game, Game}, State) ->
+	ets:update_element(?GAME_TABLE, Game#game.pid, [{#game.snakes, Game#game.snakes}, {#game.treasures, Game#game.treasures}, {#game.state, Game#game.state}]),
+	{noreply, State};
+	
+handle_cast({new_game, Game}, State) ->
+	ets:insert(?GAME_TABLE, Game), server,
+	{noreply, State};
+	
+handle_cast({delete_game, Game}, State) ->
+	ets:delete(?GAME_TABLE, Game#game.pid),
+	{noreply, State}.
+	
+handle_call(list_games, _From, State) ->
+	{reply, ets:tab2list(?GAME_TABLE), State};
+
+handle_call({get_game, GamePid}, _From, State) ->
+	{reply, lists:nth(1, ets:lookup(?GAME_TABLE, GamePid)), State};
+
+handle_call(_Req, _From, State) ->
+	{reply, {error, badarg}, State}.
+	

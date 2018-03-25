@@ -29,7 +29,8 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
     {ok, { {one_for_one, 5, 10}, [
-	    {snake_system, {snake_system, start_link, []}, permanent, brutal_kill, worker, []}
+	    {snake_system, {snake_system, start_link, []}, permanent, brutal_kill, worker, []},
+	    {snake_db, {snake_db, start_link, []}, permanent, brutal_kill, worker, []}
     ]} }.
 
 %%====================================================================
