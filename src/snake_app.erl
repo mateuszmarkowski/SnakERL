@@ -15,17 +15,6 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-	Dispatch = cowboy_router:compile([
-		{'_', [
-			{"/", cowboy_static, {priv_file, snake, "/index.html"}},
-			{"/style.css", cowboy_static, {priv_file, snake, "/style.css"}},
-			{"/game.js", cowboy_static, {priv_file, snake, "/game.js"}},
-			{"/websocket", snake_handler, []}
-		]}
-	]),
-	lager:info("started snake..."),
-	{ok, _} = cowboy:start_http(http, 100, [{port, 8080}], [{env, [{dispatch, Dispatch}]}]),
-	lager:info("started http..."),
     snake_sup:start_link().
 
 %%--------------------------------------------------------------------
