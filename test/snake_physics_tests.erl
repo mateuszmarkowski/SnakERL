@@ -1,4 +1,4 @@
--module(snake_game_tests).
+-module(snake_physics_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("records.hrl").
@@ -81,12 +81,12 @@ detect_collisions_test_() ->
 	].
 
 test_move_segments(NewX, NewY, Segments, ShouldGrow, ExpectedSegments) ->
-	?_assertEqual(ExpectedSegments, snake_game:move_segments(NewX, NewY, Segments, ShouldGrow)).
+	?_assertEqual(ExpectedSegments, snake_physics:move_segments(NewX, NewY, Segments, ShouldGrow)).
 
 test_move_snake(Snake, ExpectedSnake, SizeX, SizeY) ->
-	?_assertEqual(ExpectedSnake, snake_game:move_snake(Snake, SizeX, SizeY)).
+	?_assertEqual(ExpectedSnake, snake_physics:move_snake(Snake, SizeX, SizeY)).
 
 test_detect_collisions(Game, ExpectedSnakes) ->
-	?_assertEqual(ExpectedSnakes, snake_game:detect_collisions(Game)).
+	?_assertEqual(ExpectedSnakes, snake_physics:detect_collisions(Game)).
 	
 	
