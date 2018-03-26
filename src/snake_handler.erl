@@ -32,7 +32,7 @@ websocket_handle({text, Msg}, Req, State) ->
 	{Response, State2} = case snake_serializer:text_to_term(Msg) of
 		list -> {snake_serializer:term_to_text({list, snake_db:list_games()}), State};
 		{start, X, Y, Name, MaxSnakes} ->
-			NewGamePid = snake_game:start(X, Y, Name, MaxSnakes),
+			{ok, NewGamePid} = supervisor:start_child(snake_sup, {make_ref(), {snake_game, start_link, [X, Y, Name, MaxSnakes]}, temporary, brutal_kill, worker, []}),
 			snake_game:join(NewGamePid, self(), Name),
 			{<<"">>, [{game_pid, NewGamePid}|State]};
 		{join, NewGamePid, Name} -> snake_game:join(NewGamePid, self(), Name), {<<"">>, [{game_pid, NewGamePid}|State]};
