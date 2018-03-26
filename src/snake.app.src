@@ -1,5 +1,5 @@
 {application, snake,
- [{description, "An OTP application"},
+ [{description, "A simple multiplayer snake implementation."},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, { snake_app, []}},

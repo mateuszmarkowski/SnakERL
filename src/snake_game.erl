@@ -1,3 +1,8 @@
+%%
+%% Module responsible for game logic. A new game server is spun for every new game. Players
+%% joining existing games connect to existing game servers. Game server is shutdown when
+%% all players leave.
+%%
 -module(snake_game).
 
 -behaviour(gen_server).

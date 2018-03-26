@@ -18,5 +18,5 @@
 +++8) Move Cowboy server into the app's supervision tree
 +++9) Rewrite snake_db using gen_server
 +++10) List game participants
-11) Rewrite snake_game using gen_server: http://erlang.org/doc/design_principles/sup_princ.html#id80092
++++11) Rewrite snake_game using gen_server: http://erlang.org/doc/design_principles/sup_princ.html#id80092
 snake

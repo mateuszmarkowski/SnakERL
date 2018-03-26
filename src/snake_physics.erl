@@ -1,3 +1,7 @@
+%%
+%% A set of helper functions responsible for calculating snake positions, generating treasures,
+%% detecting collisions, etc.
+%%
 -module(snake_physics).
 
 -include("records.hrl").

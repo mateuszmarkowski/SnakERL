@@ -1,3 +1,7 @@
+%%
+%% Module responsible for direct communication with web clients. Websockets are used for
+%% communication.
+%%
 -module(snake_handler).
 
 -include("records.hrl").

@@ -1,3 +1,10 @@
+%%
+%% The only purpose of this module is collecting PIDs of all connected users and making
+%% it possible to notify all about some changes. It is important that connected users may
+%% include PIDs which aren't participating in any game, yet we need to be able to send
+%% updates to these PIDs. E.g. a list of games may change and we want to notify all
+%% connected users about.
+%%
 -module(snake_system).
 
 -behaviour(gen_server).

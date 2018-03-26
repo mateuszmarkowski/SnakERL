@@ -1,3 +1,6 @@
+%%
+%% Module responsible for data persistence. All it provides is an interface to ETS.
+%%
 -module(snake_db).
 
 -behaviour(gen_server).

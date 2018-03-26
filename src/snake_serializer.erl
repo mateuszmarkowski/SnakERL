@@ -1,9 +1,7 @@
--module(snake_serializer).
-
--export([text_to_term/1, term_to_text/1]).
-
--include("records.hrl").
-
+%%
+%% Module responsible for deserializing messages received from the web client. The protocol
+%% is very simple and consists of just a few message types indicated by the first character
+%% of the message. The first character is followed by # and additional details.
 %%
 %% J#<0.23.2> - join game {join, <0.23.2>}
 %% S#10,20 - start a new game {start, 10, 20}
@@ -11,6 +9,12 @@
 %% D#1 - update direction {direction, 1}
 %% L# - list games
 %% L#<0.23.2>;<0.23.1> - response to list of games
+
+-module(snake_serializer).
+
+-export([text_to_term/1, term_to_text/1]).
+
+-include("records.hrl").
 
 text_to_term(Text) ->
 	case string:slice(Text, 0, 2) of
